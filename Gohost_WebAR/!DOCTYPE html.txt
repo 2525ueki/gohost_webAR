@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マーカーレスWebAR - 3Dモデル表示</title>
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+    <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        .arjs-loader {
+            height: 100%;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .arjs-loader div {
+            text-align: center;
+            font-size: 1.25em;
+            color: white;
+        }
+        #place-button {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <div class="arjs-loader">
+        <div>カメラへのアクセスを許可してください<br>Loading, please wait...</div>
+    </div>
+    
+    <button id="place-button">3Dモデルを配置</button>
+    
+    <a-scene
+        vr-mode-ui="enabled: false"
+        embedded
+        arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;">
+        
+        <a-entity id="model-container"></a-entity>
+        
+        <a-camera id="camera" position="0 0 0" look-controls="enabled: false"></a-camera>
+    </a-scene>
+    
+    <script>
+        window.addEventListener('load', function() {
+            const placeButton = document.getElementById('place-button');
+            const modelContainer = document.getElementById('model-container');
+            const camera = document.getElementById('camera');
+            
+            placeButton.addEventListener('click', function() {
+                // カメラの位置と向きを取得
+                const cameraPosition = camera.getAttribute('position');
+                const cameraRotation = camera.getAttribute('rotation');
+                
+                // カメラの前方1mの位置に3Dモデルを配置
+                const modelEntity = document.createElement('a-entity');
+                
+                // ここで3Dモデルを指定 - あなたのモデルのファイル名に変更してください
+                modelEntity.setAttribute('gltf-model', './AnyConv.com__Ghost1.glb');
+                
+                modelEntity.setAttribute('position', {
+                    x: cameraPosition.x + Math.sin(THREE.MathUtils.degToRad(cameraRotation.y)) * 1,
+                    y: cameraPosition.y - 0.5,
+                    z: cameraPosition.z - Math.cos(THREE.MathUtils.degToRad(cameraRotation.y)) * 1
+                });
+                modelEntity.setAttribute('rotation', { x: 0, y: cameraRotation.y, z: 0 });
+                modelEntity.setAttribute('scale', { x: 1, y: 1, z: 1 });
+                
+                modelContainer.appendChild(modelEntity);
+            });
+            
+            // ローディング表示を非表示
+            const loader = document.querySelector('.arjs-loader');
+            loader.style.display = 'none';
+        });
+    </script>
+</body>
+</html>
