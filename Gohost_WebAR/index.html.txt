@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マーカーレスWebAR - 3Dモデル表示</title>
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+    <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        .arjs-loader {
+            height: 100%;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .arjs-loader div {
+            text-align: center;
+            font-size: 1.25em;
+            color: white;
+        }
+        #place-button {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            z-index: 999;
+        }
+        #controls {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 999;
+        }
+        .control-button {
+            padding: 8px 15px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="arjs-loader">
+        <div>カメラへのアクセスを許可してください<br>Loading, please wait...</div>
+    </div>
+    
+    <button id="place-button">3Dモデルを配置</button>
+    
+    <div id="controls" style="display: none;">
+        <button class="control-button" id="scale-up">拡大 +</button>
+        <button class="control-button" id="scale-down">縮小 -</button>
+        <button class="control-button" id="rotate-left">左回転 ↺</button>
+        <button class="control-button" id="rotate-right">右回転 ↻</button>
+    </div>
+    
+    <a-scene
+        vr-mode-ui="enabled: false"
+        embedded
+        arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;">
+        
+        <a-entity id="model-container"></a-entity>
+        
+        <a-camera id="camera" position="0 0 0" look-controls="enabled: false"></a-camera>
+    </a-scene>
+    
+    <script>
+        window.addEventListener('load', function() {
+            const placeButton = document.getElementById('place-button');
+            const controls = document.getElementById('controls');
+            const scaleUpButton = document.getElementById('scale-up');
+            const scaleDownButton = document.getElementById('scale-down');
+            const rotateLeftButton = document.getElementById('rotate-left');
+            const rotateRightButton = document.getElementById('rotate-right');
+            const modelContainer = document.getElementById('model-container');
+            const camera = document.getElementById('camera');
+            
+            let currentModel = null;
+            let currentScale = 0.1; // 初期スケール
+            
+            // ローディング表示を非表示（3秒後）
+            setTimeout(function() {
+                const loader = document.querySelector('.arjs-loader');
+                loader.style.display = 'none';
+            }, 3000);
+            
+            placeButton.addEventListener('click', function() {
+                // 既存のモデルを削除
+                if (currentModel) {
+                    modelContainer.removeChild(currentModel);
+                }
+                
+                // カメラの位置と向きを取得
+                const cameraPosition = camera.getAttribute('position');
+                const cameraRotation = camera.getAttribute('rotation');
+                
+                // カメラの前方1.5mの位置に3Dモデルを配置
+                const modelEntity = document.createElement('a-entity');
+                
+                // モデルのパス - リポジトリ内の正確なパスを指定
+                modelEntity.setAttribute('gltf-model', './model.glb');
+                
+                modelEntity.setAttribute('position', {
+                    x: cameraPosition.x + Math.sin(THREE.MathUtils.degToRad(cameraRotation.y)) * 1.5,
+                    y: cameraPosition.y - 0.5,
+                    z: cameraPosition.z - Math.cos(THREE.MathUtils.degToRad(cameraRotation.y)) * 1.5
+                });
+                modelEntity.setAttribute('rotation', { x: 0, y: cameraRotation.y, z: 0 });
+                modelEntity.setAttribute('scale', { x: currentScale, y: currentScale, z: currentScale });
+                
+                modelContainer.appendChild(modelEntity);
+                currentModel = modelEntity;
+                
+                // モデルが読み込まれたときのイベント
+                modelEntity.addEventListener('model-loaded', function() {
+                    console.log('モデルが読み込まれました');
+                });
+                
+                // エラー発生時のイベント
+                modelEntity.addEventListener('model-error', function(event) {
+                    console.error('モデル読み込みエラー:', event.detail.src);
+                    alert('モデルの読み込みに失敗しました。コンソールを確認してください。');
+                });
+                
+                // コントロールを表示
+                controls.style.display = 'flex';
+            });
+            
+            // 拡大ボタン
+            scaleUpButton.addEventListener('click', function() {
+                if (currentModel) {
+                    currentScale *= 1.2;
+                    currentModel.setAttribute('scale', { x: currentScale, y: currentScale, z: currentScale });
+                }
+            });
+            
+            // 縮小ボタン
+            scaleDownButton.addEventListener('click', function() {
+                if (currentModel) {
+                    currentScale *= 0.8;
+                    currentModel.setAttribute('scale', { x: currentScale, y: currentScale, z: currentScale });
+                }
+            });
+            
+            // 左回転ボタン
+            rotateLeftButton.addEventListener('click', function() {
+                if (currentModel) {
+                    const rotation = currentModel.getAttribute('rotation');
+                    currentModel.setAttribute('rotation', { x: rotation.x, y: rotation.y - 30, z: rotation.z });
+                }
+            });
+            
+            // 右回転ボタン
+            rotateRightButton.addEventListener('click', function() {
+                if (currentModel) {
+                    const rotation = currentModel.getAttribute('rotation');
+                    currentModel.setAttribute('rotation', { x: rotation.x, y: rotation.y + 30, z: rotation.z });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
